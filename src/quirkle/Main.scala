@@ -14,15 +14,11 @@ object Main {
     val y = Piece(Red,Spiky)
     val z = Piece(Red,Cross)
     
-    val gameState = GameState(board, List(), List(List(w, x), List(y, z)), 0)
-    
+    val gameState = GameState(board, List(w), List(List(w, x), List(y, z)), 0)
     val moves = gameState.generateMoves()
-    
-    
-//    println(List(0,1,2,3,4).take(2) ++ List(0,1,2,3,4).drop(2+1))
-    
+    moves.foreach(println(_))
+    println()
     println(gameState.applyMove(moves(5)))
-    
   }
 
 }

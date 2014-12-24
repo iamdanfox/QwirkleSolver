@@ -2,6 +2,10 @@ package quirkle
 
 trait Direction {
   def apply(square: (Int, Int)): (Int, Int)
+  
+  def applyStream(square: (Int, Int)): Stream[(Int,Int)] = {
+    square #:: applyStream(apply(square))
+  } 
 }
 object Up extends Direction {
   def apply(square: (Int, Int)): (Int, Int) = (square._1, square._2 + 1)

@@ -5,18 +5,10 @@ case class Piece(colour: Colour, shape: Shape) {
 }
 
 object Utils {
-  def getNeighbours(square: (Int, Int)): List[(Int, Int)] =
-    List((square._1, square._2 + 1),
-      (square._1 + 1, square._2 + 1),
-      (square._1 + 1, square._2),
-      (square._1 + 1, square._2 - 1),
-      (square._1, square._2 - 1),
-      (square._1 - 1, square._2 - 1),
-      (square._1 - 1, square._2),
-      (square._1 - 1, square._2 + 1))
 
-  def resupplyPlayerBag(bag: List[Piece], playerBag: List[Piece], playerNumber: Int): List[Piece] = {
-    playerBag ++ scala.util.Random.shuffle(bag).take(playerNumber - playerBag.length)
+  def resupplyPlayerBag(bag: List[Piece], playerBag: List[Piece], playerNumber: Int): (List[Piece], List[Piece]) = {
+    val takenOutOfBag = scala.util.Random.shuffle(bag).take(playerNumber - playerBag.length)
+    return (bag.diff(takenOutOfBag), playerBag ++ takenOutOfBag)
   }
 }
 
@@ -24,15 +16,27 @@ trait Move {}
 case class PlacePieces(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]) extends Move
 object SwapPieces extends Move
 
-class Board( final val map: scala.collection.Map[(Int, Int), Piece]) {
+case class Board(map: scala.collection.Map[(Int, Int), Piece]) {
 
-  def put(location: (Int, Int), piece: Piece): Board = new Board(map.+((location, piece)))
+  def put(square: (Int, Int), direction: Direction, listOfPieces: List[Piece]): Board = {
+    val newMap = this.map ++ direction.applyStream(square).zip(listOfPieces)
+    return new Board(newMap)
+  }
+
+  def allowsMove(move: Move): Boolean = move match {
+    case PlacePieces(square, direction, pieces) => true
+    case SwapPieces => true
+  }
 
   def getPerimeter(): List[(Int, Int)] = {
     var perimeter = List[(Int, Int)]()
+
+    def getNeighbours(square: (Int, Int)): List[(Int, Int)] =
+      List(Up, Down, Left, Right).map(_.apply(square))
+
     map.foreach {
       case (square, _) =>
-        perimeter = perimeter ++ Utils.getNeighbours(square).filter { !map.contains(_) }
+        perimeter = perimeter ++ getNeighbours(square).filter { !map.contains(_) }
     }
     return perimeter
   }
@@ -87,9 +91,7 @@ case class GameState(
         }
     }
 
-    // TODO: filter out legal moves!
-
-    return moves
+    return moves.filter(board.allowsMove(_)) :+ SwapPieces
   }
 
   private def playerBagFunction(function: List[Piece] => List[Piece]): List[List[Piece]] = {
@@ -98,22 +100,16 @@ case class GameState(
 
   def applyMove(move: Move): GameState = move match {
     case PlacePieces(square, direction, listOfPieces) => {
-      // put pieces on the board
-      var list = listOfPieces
-      var currentSquare = square
-      var board = this.board
-      while (list != Nil) {
-        val piece :: tail = list
-        board = board.put(currentSquare, piece)
-        currentSquare = direction.apply(currentSquare)
-        list = tail
-      }
+      val newBoard = board.put(square, direction, listOfPieces)
 
-      // remove from the appropriate bag
+      // remove pieces from the appropriate bag
+      var newBag = bag
       val newPlayerBags = playerBagFunction { playerBag =>
-        playerBag.diff(listOfPieces)
+        val (reducedBag, newPlayerBag) = Utils.resupplyPlayerBag(bag, playerBag.diff(listOfPieces), 6)
+        newBag = reducedBag
+        newPlayerBag
       }
-      return new GameState(board, bag, newPlayerBags, (turn + 1) % playerBags.length)
+      return new GameState(newBoard, newBag, newPlayerBags, (turn + 1) % playerBags.length)
     }
     case SwapPieces => throw new UnsupportedOperationException("not implemented")
   }
