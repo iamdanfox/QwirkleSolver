@@ -1,10 +1,19 @@
 package quirkle
 
-case class Board(map: scala.collection.immutable.Map[(Int, Int), Piece]) {
-
-  def put(square: (Int, Int), direction: Direction, listOfPieces: List[Piece]): Board = {
-    val newMap = this.map ++ direction.applyStream(square).zip(listOfPieces)
-    return new Board(newMap)
+trait Board {
+  def put(square: (Int, Int), direction: Direction, listOfPieces: List[Piece]): Board
+  
+  protected def contains(square: (Int, Int)): Boolean
+  protected def apply(square: (Int, Int)): Piece 
+  protected def keys: Iterable[(Int,Int)]
+  protected def get(square: (Int,Int)): Option[Piece]
+    
+  def scoreLastMove(move: Move): Int = move match {
+    case PlacePieces(square, direction, listOfPieces) => {
+      val newLines = getNewlyFormedLines(square, direction, listOfPieces).filter(_.length > 1)
+      return newLines.map(_.length).sum + (newLines.filter(_.length == 6).length * 6)
+    }
+    case SwapPieces => 0
   }
 
   def allowsMove(move: Move): Boolean = move match {
@@ -17,7 +26,7 @@ case class Board(map: scala.collection.immutable.Map[(Int, Int), Piece]) {
 
       // mustn't place pieces on already occupied space
       for (square <- squares)
-        if (this.map.contains(square))
+        if (this.contains(square))
           return false
 
       for (line <- getNewlyFormedLines(startSquare, direction, pieces)) {
@@ -34,17 +43,9 @@ case class Board(map: scala.collection.immutable.Map[(Int, Int), Piece]) {
     }
     case SwapPieces => true
   }
-
-  def scoreLastMove(move: Move): Int = move match {
-    case PlacePieces(square, direction, listOfPieces) => {
-      val newLines = getNewlyFormedLines(square, direction, listOfPieces).filter(_.length > 1)
-      return newLines.map(_.length).sum + (newLines.filter(_.length == 6).length * 6)
-    }
-    case SwapPieces => 0
-  }
-
+  
   // PROFILER SAYS 62% of time spent here. IDEA. store the lines already?
-  def getNewlyFormedLines(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]): List[List[Piece]] = {
+  protected def getNewlyFormedLines(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]): List[List[Piece]] = {
     // place pieces onto a copy of board (immutability important here!) to test other rules
     val board2 = this.put(startSquare, direction, pieces)
 
@@ -56,14 +57,14 @@ case class Board(map: scala.collection.immutable.Map[(Int, Int), Piece]) {
   }
 
   protected def piecesInDirection(square: (Int, Int), direction: Direction): List[Piece] =
-    return direction.applyStream(square).drop(1).takeWhile(map.contains(_)).map(map.apply(_)).toList
+    return direction.applyStream(square).drop(1).takeWhile(this.contains(_)).map(this.apply(_)).toList
 
   // NB. the Left and Up components are returned in reverse order, this doesn't compromise validation
   protected def hLine(square: (Int, Int)): List[Piece] =
-    return piecesInDirection(square, Left) ++ List(map(square)) ++ piecesInDirection(square, Right)
+    return piecesInDirection(square, Left) ++ List(this.apply(square)) ++ piecesInDirection(square, Right)
 
   protected def vLine(square: (Int, Int)): List[Piece] =
-    return piecesInDirection(square, Up) ++ List(map(square)) ++ piecesInDirection(square, Down)
+    return piecesInDirection(square, Up) ++ List(this.apply(square)) ++ piecesInDirection(square, Down)
 
   def getPerimeter(): List[(Int, Int)] = {
     var perimeter = List[(Int, Int)]()
@@ -71,9 +72,8 @@ case class Board(map: scala.collection.immutable.Map[(Int, Int), Piece]) {
     def getNeighbours(square: (Int, Int)): List[(Int, Int)] =
       List(Up, Down, Left, Right).map(_.apply(square))
 
-    map.foreach {
-      case (square, _) =>
-        perimeter = perimeter ++ getNeighbours(square).filter { !map.contains(_) }
+    this.keys.foreach { square =>
+      perimeter = perimeter ++ getNeighbours(square).filter { !this.contains(_) }
     }
     return perimeter
   }
@@ -82,7 +82,7 @@ case class Board(map: scala.collection.immutable.Map[(Int, Int), Piece]) {
     val perimeter = getPerimeter()
     val startSquares = for (square <- perimeter) yield {
       List(Up, Down, Left, Right)
-        .filter(direction => !map.contains(direction.apply(square)))
+        .filter(direction => !this.contains(direction.apply(square)))
         .map(direction => (square, direction))
     }
     if (startSquares.length == 0)
@@ -90,16 +90,16 @@ case class Board(map: scala.collection.immutable.Map[(Int, Int), Piece]) {
     else
       return startSquares.flatten
   }
-
+  
   override def toString: String = {
-    val (xs, ys) = map.keys.unzip
-    val (maxX, maxY, minX, minY) = if (map.keys.isEmpty)
+    val (xs, ys) = this.keys.unzip
+    val (maxX, maxY, minX, minY) = if (this.keys.isEmpty)
       (1, 1, -1, -1)
     else
       (xs.max + 1, ys.max + 1, xs.min - 1, ys.min - 1)
 
     (for (y <- minY to maxY) yield {
-      (for (x <- minX to maxX) yield map.get((x, y)) match {
+      (for (x <- minX to maxX) yield this.get((x, y)) match {
         case Some(piece) => piece.toString()
         case None => ".."
       }).mkString(" ")

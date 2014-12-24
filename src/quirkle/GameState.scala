@@ -15,9 +15,7 @@ object GameState {
     val (playerBags, leftOvers) = startBag.grouped(NUM_PIECES_PER_PLAYER).toList.splitAt(numPlayers)
     val bag = leftOvers.flatten
 
-    val board = new Board(new scala.collection.immutable.HashMap[(Int, Int), Piece])
-
-    return new GameState(board, playerBags.map(bag => PlayerState(bag, 0)), bag, 0)
+    return new GameState(ABoard.makeBlank(), playerBags.map(bag => PlayerState(bag, 0)), bag, 0)
   }
 }
 

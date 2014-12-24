@@ -2,8 +2,11 @@ package quirkle
 
 object Main {
   def main(args: Array[String]): Unit = {
+    
+    val b = new ABoard(Array.ofDim[Piece](40,40), 20)
+    
+    
     var gameState = GameState.makeInitialGameState(2)
-    //    Console.readLine()
     do {
       val moves = gameState.generateMoves()
       println("Player " + gameState.turn + " turn (score=" + gameState.currentPlayer().score +
