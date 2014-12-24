@@ -2,11 +2,12 @@ package quirkle
 
 object Main {
   def main(args: Array[String]): Unit = {
-    var gameState = Utils.makeInitialGameState(2)
-//    Console.readLine()
+    var gameState = GameState.makeInitialGameState(2)
+    //    Console.readLine()
     do {
       val moves = gameState.generateMoves()
-      println("Player " + gameState.turn + " turn, currentBag:" + gameState.currentBag + " (" + moves.length + " possible moves)")
+      println("Player " + gameState.turn + " turn (score=" + gameState.currentPlayer().score +
+        ", currentBag:" + gameState.currentPlayer().playerBag + " (" + moves.length + " possible moves)")
       Console.readLine()
       gameState = gameState.applyMove(moves(0))
       println(gameState.board + "\n\n")

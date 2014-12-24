@@ -36,7 +36,7 @@ case class Board(map: scala.collection.immutable.Map[(Int, Int), Piece]) {
   }
 
   // PROFILER SAYS 62% of time spent here. IDEA. store the lines already?
-  protected def getNewlyFormedLines(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]): List[List[Piece]] = {
+  def getNewlyFormedLines(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]): List[List[Piece]] = {
     // place pieces onto a copy of board (immutability important here!) to test other rules
     val board2 = this.put(startSquare, direction, pieces)
 
