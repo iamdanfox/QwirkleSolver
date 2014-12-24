@@ -1,0 +1,6 @@
+
+*.class
+
+.cache
+
+.settings/org.eclipse.jdt.core.prefs
