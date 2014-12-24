@@ -32,16 +32,6 @@ case class GameState(
   def generateMoves(): List[Move] = {
     var moves = List[Move]()
 
-    //    def subLists[A](list: List[A]): List[List[A]] = (1 to list.length).flatMap(list.combinations(_)).toList
-    //    def subPermutations[A](lists: List[List[A]]) = lists.flatMap(_.permutations).toList
-    //
-    //    // get possible start squares and directions 
-    //    val possiblePlays = subPermutations(subLists(currentPlayer().playerBag)) // SLOW
-    //    board.getStartConfigurations().foreach {
-    //      case (square, direction) =>
-    //        possiblePlays.foreach { listOfPieces => moves = PlacePieces(square, direction, listOfPieces) :: moves }
-    //    }
-
     // get possible start squares and directions
     val playerBag = currentPlayer().playerBag
     board.getStartConfigurations().foreach {

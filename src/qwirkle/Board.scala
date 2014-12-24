@@ -45,15 +45,15 @@ trait Board {
   }
   
   // PROFILER SAYS 62% of time spent here. IDEA. store the lines already?
-  protected def getNewlyFormedLines(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]): List[List[Piece]] = {
+  protected def getNewlyFormedLines(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]): Stream[List[Piece]] = {
     // place pieces onto a copy of board (immutability important here!) to test other rules
     val board2 = this.put(startSquare, direction, pieces)
 
     val mainLine = if (direction == Up || direction == Down) board2.vLine(startSquare) else board2.hLine(startSquare)
-    val squares = direction.applyStream(startSquare).take(pieces.length).toList
+    val squares = direction.applyStream(startSquare).take(pieces.length)
     val perpendicularLines = if (direction == Up || direction == Down) squares.map(board2.hLine(_)) else squares.map(board2.vLine(_))
 
-    return mainLine :: perpendicularLines
+    return mainLine #:: perpendicularLines
   }
 
   protected def piecesInDirection(square: (Int, Int), direction: Direction): List[Piece] =
