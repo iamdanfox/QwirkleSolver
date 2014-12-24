@@ -2,13 +2,16 @@ package qwirkle
 
 trait Board {
   def put(square: (Int, Int), direction: Direction, listOfPieces: List[Piece]): Board
-  
+
   protected def contains(square: (Int, Int)): Boolean
-  protected def apply(square: (Int, Int)): Piece 
-  protected def keys: Iterable[(Int,Int)]
-  protected def get(square: (Int,Int)): Option[Piece]
-    
-  def scoreLastMove(move: Move): Int = move match {
+  protected def apply(square: (Int, Int)): Piece
+  protected def keys: Iterable[(Int, Int)]
+  protected def get(square: (Int, Int)): Option[Piece]
+
+  /**
+   * This CAN be a prospective move! (pieces don't have to be laid down yet)
+   */
+  def scoreMove(move: Move): Int = move match {
     case PlacePieces(square, direction, listOfPieces) => {
       val newLines = getNewlyFormedLines(square, direction, listOfPieces).filter(_.length > 1)
       return newLines.map(_.length).sum + (newLines.filter(_.length == 6).length * 6)
@@ -31,7 +34,7 @@ trait Board {
 
       for (line <- getNewlyFormedLines(startSquare, direction, pieces)) {
         // no repeated pieces allowed
-        if (line.distinct.length != line.length)
+        if (line.distinct.length != line.length) // TODO: make distinct faster!
           return false
 
         // pieces must form a line of one color/shape
@@ -43,15 +46,18 @@ trait Board {
     }
     case SwapPieces => true
   }
-  
-  // PROFILER SAYS 62% of time spent here. IDEA. store the lines already?
-  protected def getNewlyFormedLines(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]): Stream[List[Piece]] = {
-    // place pieces onto a copy of board (immutability important here!) to test other rules
-    val board2 = this.put(startSquare, direction, pieces)
 
-    val mainLine = if (direction == Up || direction == Down) board2.vLine(startSquare) else board2.hLine(startSquare)
+  /*
+   * NB. this doesn't perform any copying or mutate any state :)
+   */
+  protected def getNewlyFormedLines(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]): Stream[List[Piece]] = {
     val squares = direction.applyStream(startSquare).take(pieces.length)
-    val perpendicularLines = if (direction == Up || direction == Down) squares.map(board2.hLine(_)) else squares.map(board2.vLine(_))
+
+    val mainLine = piecesInDirection(startSquare, direction.opposite) ++ pieces ++ piecesInDirection(squares.last, direction)
+    val perpendicularLines = if (direction == Up || direction == Down)
+      squares.zip(pieces).map(element => this.hLine(element._1,element._2))
+    else
+      squares.zip(pieces).map(element => this.vLine(element._1,element._2))
 
     return mainLine #:: perpendicularLines
   }
@@ -60,11 +66,11 @@ trait Board {
     return direction.applyStream(square).drop(1).takeWhile(this.contains(_)).map(this.apply(_)).toList
 
   // NB. the Left and Up components are returned in reverse order, this doesn't compromise validation
-  protected def hLine(square: (Int, Int)): List[Piece] =
-    return piecesInDirection(square, Left) ++ List(this.apply(square)) ++ piecesInDirection(square, Right)
+  protected def hLine(square: (Int, Int), piece: Piece): List[Piece] =
+    return piecesInDirection(square, Left) ++ List(piece) ++ piecesInDirection(square, Right)
 
-  protected def vLine(square: (Int, Int)): List[Piece] =
-    return piecesInDirection(square, Up) ++ List(this.apply(square)) ++ piecesInDirection(square, Down)
+  protected def vLine(square: (Int, Int), piece: Piece): List[Piece] =
+    return piecesInDirection(square, Up) ++ List(piece) ++ piecesInDirection(square, Down)
 
   def getPerimeter(): List[(Int, Int)] = {
     var perimeter = List[(Int, Int)]()
@@ -90,7 +96,7 @@ trait Board {
     else
       return startSquares.flatten
   }
-  
+
   override def toString: String = {
     val (xs, ys) = this.keys.unzip
     val (maxX, maxY, minX, minY) = if (this.keys.isEmpty)

@@ -33,11 +33,11 @@ object Main {
   }
 
   def greedy(moves: List[Move], gameState: GameState): Move = {
-    moves.maxBy(move => gameState.applyMove(move).board.scoreLastMove(move))
+    moves.maxBy(move => gameState.board.scoreMove(move))
   }
 
   def greedyPreferTurnover(moves: List[Move], gameState: GameState): Move = {
-    val scoreMapping = moves.groupBy(move => gameState.applyMove(move).board.scoreLastMove(move))
+    val scoreMapping = moves.groupBy(move => gameState.board.scoreMove(move))
     val bestScoringMoves = scoreMapping(scoreMapping.keys.max)
     bestScoringMoves.maxBy(move => move match {
       case PlacePieces(_, _, pieces) => pieces.length
@@ -46,7 +46,7 @@ object Main {
   }
 
   def greedyAvoidTurnover(moves: List[Move], gameState: GameState): Move = {
-    val scoreMapping = moves.groupBy(move => gameState.applyMove(move).board.scoreLastMove(move))
+    val scoreMapping = moves.groupBy(move => gameState.board.scoreMove(move))
     val bestScoringMoves = scoreMapping(scoreMapping.keys.max)
     bestScoringMoves.minBy(move => move match {
       case PlacePieces(_, _, pieces) => pieces.length
@@ -56,7 +56,7 @@ object Main {
 
   def maxPieceValue(moves: List[Move], gameState: GameState): Move = {
     moves.maxBy(move => move match {
-      case PlacePieces(_, _, pieces) => gameState.applyMove(move).board.scoreLastMove(move) / pieces.length
+      case PlacePieces(_, _, pieces) => gameState.board.scoreMove(move) / pieces.length
       case SwapPieces => 0
     })
   }

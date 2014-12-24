@@ -72,7 +72,7 @@ case class GameState(
           newBag = reducedBag
 
           val lastMoveBonus = if (newBag.length == 0 && newPlayerBag.length == 0) 6 else 0
-          PlayerState(newPlayerBag, score + newBoard.scoreLastMove(placeMove) + lastMoveBonus)
+          PlayerState(newPlayerBag, score + newBoard.scoreMove(placeMove) + lastMoveBonus)
       }
 
       return new GameState(newBoard, newPlayerBags, newBag, (turn + 1) % players.length)
