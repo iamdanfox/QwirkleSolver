@@ -25,11 +25,11 @@ case class PlayerState(playerBag: List[Piece], score: Int)
 
 case class GameState(
   board: Board,
-  playerBags: List[PlayerState],
+  players: List[PlayerState],
   bag: List[Piece],
   turn: Int) {
 
-  def currentPlayer():  PlayerState = playerBags(turn)
+  def currentPlayer(): PlayerState = players(turn)
 
   def generateMoves(): List[Move] = {
     var moves = List[Move]()
@@ -54,31 +54,37 @@ case class GameState(
   }
 
   private def mutateCurrentPlayerState(function: PlayerState => PlayerState): List[PlayerState] = {
-    playerBags.take(turn) ++ List(function(playerBags(turn))) ++ playerBags.drop(turn + 1)
+    players.take(turn) ++ List(function(players(turn))) ++ players.drop(turn + 1)
   }
 
   def applyMove(move: Move): GameState = move match {
-    case PlacePieces(square, direction, listOfPieces) => {
+    case placeMove @ PlacePieces(square, direction, listOfPieces) => {
       val newBoard = board.put(square, direction, listOfPieces)
-      
-      val newLines = board.getNewlyFormedLines(square, direction, listOfPieces).filter(_.length > 1)
-      val moveScore = newLines.map(_.length).sum + (newLines.filter(_.length == 6).length * 6)
 
       // remove pieces from the appropriate bag
       var newBag = bag
       val newPlayerBags = mutateCurrentPlayerState {
         case PlayerState(playerBag, score) =>
-          val (reducedBag, newPlayerBag) = resupplyPlayerBag(playerBag.diff(listOfPieces))
+          val (reducedBag, newPlayerBag) = resupplyPlayerBag(bag, playerBag.diff(listOfPieces))
           newBag = reducedBag
-          PlayerState(newPlayerBag, score + moveScore)
+          PlayerState(newPlayerBag, score + newBoard.scoreLastMove(placeMove))
       }
 
-      return new GameState(newBoard, newPlayerBags, newBag, (turn + 1) % playerBags.length)
+      return new GameState(newBoard, newPlayerBags, newBag, (turn + 1) % players.length) // TODO figure out 6 bonus at end of game
     }
-    case SwapPieces => throw new UnsupportedOperationException("SwapPieces not implemented")
+    case SwapPieces => {
+      var newBag = bag
+      val newPlayerBags = mutateCurrentPlayerState {
+        case PlayerState(playerBag, score) =>
+          val (mainBag, newPlayerBag) = resupplyPlayerBag(bag ++ playerBag, List())
+          newBag = mainBag
+          PlayerState(newPlayerBag, score)
+      }
+      return new GameState(board, newPlayerBags, newBag, (turn + 1) % players.length)
+    }
   }
 
-  private def resupplyPlayerBag(playerBag: List[Piece]): (List[Piece], List[Piece]) = {
+  private def resupplyPlayerBag(bag: List[Piece], playerBag: List[Piece]): (List[Piece], List[Piece]) = {
     val takenOutOfBag = scala.util.Random.shuffle(bag).take(GameState.NUM_PIECES_PER_PLAYER - playerBag.length)
     return (bag.diff(takenOutOfBag), playerBag ++ takenOutOfBag)
   }

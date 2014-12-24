@@ -35,6 +35,14 @@ case class Board(map: scala.collection.immutable.Map[(Int, Int), Piece]) {
     case SwapPieces => true
   }
 
+  def scoreLastMove(move: Move): Int = move match {
+    case PlacePieces(square, direction, listOfPieces) => {
+      val newLines = getNewlyFormedLines(square, direction, listOfPieces).filter(_.length > 1)
+      return newLines.map(_.length).sum + (newLines.filter(_.length == 6).length * 6)
+    }
+    case SwapPieces => 0
+  }
+
   // PROFILER SAYS 62% of time spent here. IDEA. store the lines already?
   def getNewlyFormedLines(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]): List[List[Piece]] = {
     // place pieces onto a copy of board (immutability important here!) to test other rules

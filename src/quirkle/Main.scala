@@ -8,8 +8,11 @@ object Main {
       val moves = gameState.generateMoves()
       println("Player " + gameState.turn + " turn (score=" + gameState.currentPlayer().score +
         ", currentBag:" + gameState.currentPlayer().playerBag + " (" + moves.length + " possible moves)")
-      Console.readLine()
-      gameState = gameState.applyMove(moves(0))
+//      Console.readLine()
+      
+      val bestmove = moves.maxBy(move => gameState.applyMove(move).board.scoreLastMove(move))
+      
+      gameState = gameState.applyMove(bestmove)
       println(gameState.board + "\n\n")
     } while (true)
   }
