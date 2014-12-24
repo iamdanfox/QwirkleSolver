@@ -67,10 +67,12 @@ case class GameState(
         case PlayerState(playerBag, score) =>
           val (reducedBag, newPlayerBag) = resupplyPlayerBag(bag, playerBag.diff(listOfPieces))
           newBag = reducedBag
-          PlayerState(newPlayerBag, score + newBoard.scoreLastMove(placeMove))
+          
+          val lastMoveBonus = if (newBag.length == 0 && newPlayerBag.length == 0) 6 else 0
+          PlayerState(newPlayerBag, score + newBoard.scoreLastMove(placeMove) + lastMoveBonus)
       }
 
-      return new GameState(newBoard, newPlayerBags, newBag, (turn + 1) % players.length) // TODO figure out 6 bonus at end of game
+      return new GameState(newBoard, newPlayerBags, newBag, (turn + 1) % players.length)
     }
     case SwapPieces => {
       var newBag = bag
