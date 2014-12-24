@@ -24,9 +24,53 @@ case class Board(map: scala.collection.Map[(Int, Int), Piece]) {
   }
 
   def allowsMove(move: Move): Boolean = move match {
-    case PlacePieces(square, direction, pieces) => true
+    case PlacePieces(startSquare, direction, pieces) => {
+      val squares = direction.applyStream(startSquare).take(pieces.length)
+
+      // rules:
+      // piece must have come from player's bag (implicit - not enforced)
+      // pieces must be placed in one line (implicit - not enforced)
+
+      // mustn't place pieces on already occupied space
+      for (square <- squares)
+        if (this.map.contains(square))
+          return false
+
+      for (line <- getNewlyFormedLines(startSquare, direction, pieces)) {
+        // no repeated pieces allowed
+        if (line.distinct.length != line.length)
+          return false
+
+        // pieces must form a line of one color/shape
+        if (line.map(_.colour).distinct.length > 1 && line.map(_.shape).distinct.length > 1)
+          return false
+      }
+
+      return true
+    }
     case SwapPieces => true
   }
+
+  protected def getNewlyFormedLines(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]): List[List[Piece]] = {
+    // place pieces onto a copy of board (immutability important here!) to test other rules
+    val board2 = this.put(startSquare, direction, pieces)
+
+    val mainLine = if (direction == Up || direction == Down) board2.vLine(startSquare) else board2.hLine(startSquare)
+    val squares = direction.applyStream(startSquare).take(pieces.length).toList
+    val perpendicularLines = if (direction == Up || direction == Down) squares.map(board2.hLine(_)) else squares.map(board2.vLine(_))
+
+    return mainLine :: perpendicularLines
+  }
+
+  protected def piecesInDirection(square: (Int, Int), direction: Direction): List[Piece] =
+    return direction.applyStream(square).drop(1).takeWhile(map.contains(_)).map(map.apply(_)).toList
+
+  // NB. the Left and Up components are returned in reverse order, this doesn't compromise validation
+  protected def hLine(square: (Int, Int)): List[Piece] =
+    return piecesInDirection(square, Left) ++ List(map(square)) ++ piecesInDirection(square, Right)
+
+  protected def vLine(square: (Int, Int)): List[Piece] =
+    return piecesInDirection(square, Up) ++ List(map(square)) ++ piecesInDirection(square, Down)
 
   def getPerimeter(): List[(Int, Int)] = {
     var perimeter = List[(Int, Int)]()
@@ -74,6 +118,8 @@ case class GameState(
   playerBags: List[List[Piece]],
   turn: Int) {
 
+  private val NUM_PIECES_PER_PLAYER = 6
+
   private def currentBag(): List[Piece] = playerBags(turn)
 
   def generateMoves(): List[Move] = {
@@ -105,7 +151,7 @@ case class GameState(
       // remove pieces from the appropriate bag
       var newBag = bag
       val newPlayerBags = playerBagFunction { playerBag =>
-        val (reducedBag, newPlayerBag) = Utils.resupplyPlayerBag(bag, playerBag.diff(listOfPieces), 6)
+        val (reducedBag, newPlayerBag) = Utils.resupplyPlayerBag(bag, playerBag.diff(listOfPieces), NUM_PIECES_PER_PLAYER)
         newBag = reducedBag
         newPlayerBag
       }

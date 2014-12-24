@@ -16,9 +16,10 @@ object Main {
     
     val gameState = GameState(board, List(w), List(List(w, x), List(y, z)), 0)
     val moves = gameState.generateMoves()
-    moves.foreach(println(_))
-    println()
-    println(gameState.applyMove(moves(5)))
+    println(moves.length + " moves available")
+    println(gameState.applyMove(moves(0)))
+    
+    println(List(1,2).drop(1))
   }
 
 }
