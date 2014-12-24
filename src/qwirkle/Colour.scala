@@ -1,4 +1,4 @@
-package quirkle
+package qwirkle
 
 trait Colour
 object Red extends Colour {

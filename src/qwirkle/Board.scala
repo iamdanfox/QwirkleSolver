@@ -1,4 +1,4 @@
-package quirkle
+package qwirkle
 
 trait Board {
   def put(square: (Int, Int), direction: Direction, listOfPieces: List[Piece]): Board

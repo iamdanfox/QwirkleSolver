@@ -1,4 +1,4 @@
-package quirkle
+package qwirkle
 
 object Main {
   def main(args: Array[String]): Unit = {

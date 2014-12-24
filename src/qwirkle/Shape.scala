@@ -1,4 +1,4 @@
-package quirkle
+package qwirkle
 
 trait Shape
 object Square extends Shape {

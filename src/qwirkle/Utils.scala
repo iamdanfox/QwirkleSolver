@@ -1,4 +1,4 @@
-package quirkle
+package qwirkle
 
 
 case class Piece(colour: Colour, shape: Shape) {

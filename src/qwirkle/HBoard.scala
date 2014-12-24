@@ -1,4 +1,4 @@
-package quirkle
+package qwirkle
 
 
 object HBoard {

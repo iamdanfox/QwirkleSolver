@@ -1,4 +1,4 @@
-package quirkle
+package qwirkle
 
 object GameState {
 
@@ -32,23 +32,38 @@ case class GameState(
   def generateMoves(): List[Move] = {
     var moves = List[Move]()
 
-    def subLists[A](list: List[A]): List[List[A]] = (1 to list.length).flatMap(list.combinations(_)).toList
-    def subPermutations[A](lists: List[List[A]]) = lists.flatMap(_.permutations).toList
+    //    def subLists[A](list: List[A]): List[List[A]] = (1 to list.length).flatMap(list.combinations(_)).toList
+    //    def subPermutations[A](lists: List[List[A]]) = lists.flatMap(_.permutations).toList
+    //
+    //    // get possible start squares and directions 
+    //    val possiblePlays = subPermutations(subLists(currentPlayer().playerBag)) // SLOW
+    //    board.getStartConfigurations().foreach {
+    //      case (square, direction) =>
+    //        possiblePlays.foreach { listOfPieces => moves = PlacePieces(square, direction, listOfPieces) :: moves }
+    //    }
 
-    // get possible start squares and directions 
-    val possiblePlays = subPermutations(subLists(currentPlayer().playerBag)) // SLOW
+    // get possible start squares and directions
+    val playerBag = currentPlayer().playerBag
     board.getStartConfigurations().foreach {
       case (square, direction) =>
-        possiblePlays.foreach { listOfPieces => moves = PlacePieces(square, direction, listOfPieces) :: moves }
+
+        val piecesQueue = new scala.collection.mutable.Queue[List[Piece]]
+        piecesQueue ++= playerBag.combinations(1)
+
+        while (!piecesQueue.isEmpty) {
+          val list = piecesQueue.dequeue()
+          val move = PlacePieces(square, direction, list)
+          if (board.allowsMove(move)){
+            moves = move :: moves
+            piecesQueue ++= playerBag.diff(list).combinations(1).map(piece => list ++ piece)
+          }
+        }
     }
 
-    //PROFILER SAYS 82% of time spent in here
-    val legalMoves = moves.filter(board.allowsMove(_))
-
     if (bag.length > 0)
-      return legalMoves :+ SwapPieces
+      return moves :+ SwapPieces
     else
-      return legalMoves
+      return moves
   }
 
   private def mutateCurrentPlayerState(function: PlayerState => PlayerState): List[PlayerState] = {
@@ -65,7 +80,7 @@ case class GameState(
         case PlayerState(playerBag, score) =>
           val (reducedBag, newPlayerBag) = resupplyPlayerBag(bag, playerBag.diff(listOfPieces))
           newBag = reducedBag
-          
+
           val lastMoveBonus = if (newBag.length == 0 && newPlayerBag.length == 0) 6 else 0
           PlayerState(newPlayerBag, score + newBoard.scoreLastMove(placeMove) + lastMoveBonus)
       }
