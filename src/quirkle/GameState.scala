@@ -6,9 +6,27 @@ case class Piece(colour: Colour, shape: Shape) {
 
 object Utils {
 
-  def resupplyPlayerBag(bag: List[Piece], playerBag: List[Piece], playerNumber: Int): (List[Piece], List[Piece]) = {
-    val takenOutOfBag = scala.util.Random.shuffle(bag).take(playerNumber - playerBag.length)
+  val NUM_PIECES_PER_PLAYER = 6
+
+  def resupplyPlayerBag(bag: List[Piece], playerBag: List[Piece]): (List[Piece], List[Piece]) = {
+    val takenOutOfBag = scala.util.Random.shuffle(bag).take(NUM_PIECES_PER_PLAYER - playerBag.length)
     return (bag.diff(takenOutOfBag), playerBag ++ takenOutOfBag)
+  }
+
+  def makeInitialGameState(numPlayers: Int): GameState = {
+    val distinctPieces = for (
+      color <- List(Red, Orange, Yellow, Green, Blue, Purple);
+      shape <- List(Square, Circle, Diamond, Clubs, Spiky, Cross)
+    ) yield Piece(color, shape)
+
+    val startBag = scala.util.Random.shuffle(distinctPieces ++ distinctPieces ++ distinctPieces)
+
+    val (playerBags, leftOvers) = startBag.grouped(NUM_PIECES_PER_PLAYER).toList.splitAt(numPlayers)
+    val bag = leftOvers.flatten
+
+    val board = new Board(new scala.collection.immutable.HashMap[(Int, Int), Piece])
+
+    return new GameState(board, playerBags, bag, 0)
   }
 }
 
@@ -16,7 +34,7 @@ trait Move {}
 case class PlacePieces(startSquare: (Int, Int), direction: Direction, pieces: List[Piece]) extends Move
 object SwapPieces extends Move
 
-case class Board(map: scala.collection.Map[(Int, Int), Piece]) {
+case class Board(map: scala.collection.immutable.Map[(Int, Int), Piece]) {
 
   def put(square: (Int, Int), direction: Direction, listOfPieces: List[Piece]): Board = {
     val newMap = this.map ++ direction.applyStream(square).zip(listOfPieces)
@@ -100,8 +118,10 @@ case class Board(map: scala.collection.Map[(Int, Int), Piece]) {
 
   override def toString: String = {
     val (xs, ys) = map.keys.unzip
-    val (maxX, maxY) = (xs.max + 1, ys.max + 1)
-    val (minX, minY) = (xs.min - 1, ys.min - 1)
+    val (maxX, maxY, minX, minY) = if (map.keys.isEmpty)
+      (1, 1, -1, -1)
+    else
+      (xs.max + 1, ys.max + 1, xs.min - 1, ys.min - 1)
 
     (for (y <- minY to maxY) yield {
       (for (x <- minX to maxX) yield map.get((x, y)) match {
@@ -114,13 +134,11 @@ case class Board(map: scala.collection.Map[(Int, Int), Piece]) {
 
 case class GameState(
   board: Board,
-  bag: List[Piece],
   playerBags: List[List[Piece]],
+  bag: List[Piece],
   turn: Int) {
 
-  private val NUM_PIECES_PER_PLAYER = 6
-
-  private def currentBag(): List[Piece] = playerBags(turn)
+  def currentBag(): List[Piece] = playerBags(turn)
 
   def generateMoves(): List[Move] = {
     var moves = List[Move]()
@@ -151,11 +169,11 @@ case class GameState(
       // remove pieces from the appropriate bag
       var newBag = bag
       val newPlayerBags = playerBagFunction { playerBag =>
-        val (reducedBag, newPlayerBag) = Utils.resupplyPlayerBag(bag, playerBag.diff(listOfPieces), NUM_PIECES_PER_PLAYER)
+        val (reducedBag, newPlayerBag) = Utils.resupplyPlayerBag(bag, playerBag.diff(listOfPieces))
         newBag = reducedBag
         newPlayerBag
       }
-      return new GameState(newBoard, newBag, newPlayerBags, (turn + 1) % playerBags.length)
+      return new GameState(newBoard, newPlayerBags, newBag, (turn + 1) % playerBags.length)
     }
     case SwapPieces => throw new UnsupportedOperationException("not implemented")
   }
