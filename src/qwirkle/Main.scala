@@ -4,9 +4,8 @@ object Main {
   def main(args: Array[String]): Unit = {
 
     var done = false
-    var gameState = GameState.makeInitialGameState(2)
+    var gameState = GameState.makeInitialGameState(3)
 
-    Console.readLine()
     val t0 = System.nanoTime()
     do {
       val moves = gameState.generateMoves()
@@ -16,8 +15,9 @@ object Main {
       if (moves.length > 0) {
 
         val chosenMove = gameState.turn match {
-          case 0 => greedy(moves, gameState)
-          case 1 => greedy(moves, gameState)
+          case 0 => maxPieceValue(moves, gameState)
+          case 1 => maxPieceValue(moves, gameState)
+          case 2 => maxPieceValue(moves, gameState)
         }
 
         gameState = gameState.applyMove(chosenMove)
