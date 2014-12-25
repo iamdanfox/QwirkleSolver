@@ -3,17 +3,19 @@ package qwirkle
 package qwirkle
 
 object ABoard1 {
-  val DIM = 50
-  def makeBlank(): Board = new ABoard1(Array.ofDim[Piece](2 * DIM * 2 * DIM), DIM)
+  def makeBlank(): Board = new ABoard1()
 }
 
-case class ABoard1(private val array: Array[Piece], private val DIM: Int) extends Board {
+/**
+ * NB: this is mutable!
+ */
+case class ABoard1() extends Board {
+  private val DIM = 50
+  private val array = Array.ofDim[Piece](2 * DIM * 2 * DIM)
 
   def put(square: (Int, Int), direction: Direction, listOfPieces: List[Piece]): ABoard1 = {
-    val newArray = array.clone()
-
-    direction.applyStream(square).zip(listOfPieces).foreach { case ((x, y), piece) => newArray(2 * DIM * (x + DIM) + y + DIM) = piece }
-    return new ABoard1(newArray, DIM);
+    direction.applyStream(square).zip(listOfPieces).foreach { case ((x, y), piece) => array(2 * DIM * (x + DIM) + y + DIM) = piece }
+    return this
   }
 
   def contains(square: (Int, Int)): Boolean = array(2 * DIM * (square._1 + DIM) + square._2 + DIM) != null

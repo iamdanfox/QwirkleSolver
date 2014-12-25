@@ -34,14 +34,14 @@ trait Board {
 
       for (line <- getNewlyFormedLines(startSquare, direction, pieces)) {
         // no repeated pieces allowed
-        val seenAlready = new scala.collection.mutable.HashSet[Int]
+        val seenAlready = new scala.collection.mutable.HashSet[Piece]
         for (piece <- line) {
-          if (!seenAlready.add(piece.hashCode)) return false // all pieces' hashcodes are distinct!
+          if (!seenAlready.add(piece)) return false
         }
 
         // pieces must form a line of one color/shape
-        val moreThanOneColour = line.exists(_.colour != line(0).colour)
-        val moreThanOneShape = line.exists(_.shape != line(0).shape)
+        val moreThanOneColour = line.tail.exists(_.colour != line(0).colour)
+        val moreThanOneShape = line.tail.exists(_.shape != line(0).shape)
         if (moreThanOneColour && moreThanOneShape)
           return false
       }
