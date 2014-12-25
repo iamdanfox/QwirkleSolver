@@ -38,14 +38,14 @@ case class GameState(
       case (square, direction) =>
 
         val piecesQueue = new scala.collection.mutable.Queue[List[Piece]]
-        piecesQueue ++= playerBag.combinations(1)
+        piecesQueue ++= playerBag.map(List(_)) // breaks into [[1],[2],...]
 
         while (!piecesQueue.isEmpty) {
           val list = piecesQueue.dequeue()
           val move = PlacePieces(square, direction, list)
           if (board.allowsMove(move)){
             moves = move :: moves
-            piecesQueue ++= playerBag.diff(list).combinations(1).map(piece => list ++ piece)
+            piecesQueue ++= playerBag.diff(list).map(piece => list :+ piece)
           }
         }
     }

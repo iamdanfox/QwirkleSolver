@@ -7,7 +7,7 @@ object Main {
     var gameState = GameState.makeInitialGameState(2)
 
     Console.readLine()
-    
+    val t0 = System.nanoTime()
     do {
       val moves = gameState.generateMoves()
       println("Player " + gameState.turn + " turn (score=" + gameState.currentPlayer().score +
@@ -27,9 +27,10 @@ object Main {
         done = true
       }
     } while (!done)
+    val t1 = System.nanoTime()
       
     val scores = gameState.players.map(playerState => playerState.score)
-    println("Game finished, scores: " + scores.mkString(", ") + " total=" + scores.sum)
+    println("Game finished, scores: " + scores.mkString(", ") + " total=" + scores.sum + " time="+((t1-t0).toDouble/1000000000)+"s")
   }
 
   def greedy(moves: List[Move], gameState: GameState): Move = {

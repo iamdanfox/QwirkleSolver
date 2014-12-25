@@ -34,11 +34,15 @@ trait Board {
 
       for (line <- getNewlyFormedLines(startSquare, direction, pieces)) {
         // no repeated pieces allowed
-        if (line.distinct.length != line.length) // TODO: make distinct faster!
-          return false
+        val seenAlready = new scala.collection.mutable.HashSet[Int]
+        for (piece <- line) {
+          if (!seenAlready.add(piece.hashCode)) return false // all pieces' hashcodes are distinct!
+        }
 
         // pieces must form a line of one color/shape
-        if (line.map(_.colour).distinct.length > 1 && line.map(_.shape).distinct.length > 1)
+        val moreThanOneColour = line.exists(_.colour != line(0).colour)
+        val moreThanOneShape = line.exists(_.shape != line(0).shape)
+        if (moreThanOneColour && moreThanOneShape)
           return false
       }
 
@@ -55,9 +59,9 @@ trait Board {
 
     val mainLine = piecesInDirection(startSquare, direction.opposite) ++ pieces ++ piecesInDirection(squares.last, direction)
     val perpendicularLines = if (direction == Up || direction == Down)
-      squares.zip(pieces).map(element => this.hLine(element._1,element._2))
+      squares.zip(pieces).map(element => this.hLine(element._1, element._2))
     else
-      squares.zip(pieces).map(element => this.vLine(element._1,element._2))
+      squares.zip(pieces).map(element => this.vLine(element._1, element._2))
 
     return mainLine #:: perpendicularLines
   }
@@ -67,34 +71,32 @@ trait Board {
 
   // NB. the Left and Up components are returned in reverse order, this doesn't compromise validation
   protected def hLine(square: (Int, Int), piece: Piece): List[Piece] =
-    return piecesInDirection(square, Left) ++ List(piece) ++ piecesInDirection(square, Right)
+    return piecesInDirection(square, Left) ++ (piece :: piecesInDirection(square, Right))
 
   protected def vLine(square: (Int, Int), piece: Piece): List[Piece] =
-    return piecesInDirection(square, Up) ++ List(piece) ++ piecesInDirection(square, Down)
+    return piecesInDirection(square, Up) ++ (piece :: piecesInDirection(square, Down))
 
   def getPerimeter(): List[(Int, Int)] = {
     var perimeter = List[(Int, Int)]()
 
-    def getNeighbours(square: (Int, Int)): List[(Int, Int)] =
-      List(Up, Down, Left, Right).map(_.apply(square))
-
     this.keys.foreach { square =>
-      perimeter = perimeter ++ getNeighbours(square).filter { !this.contains(_) }
+      perimeter = perimeter.:::(List(Up, Down, Left, Right).map(_.apply(square)).filter(!this.contains(_)))
     }
     return perimeter
   }
 
   def getStartConfigurations(): List[((Int, Int), Direction)] = {
     val perimeter = getPerimeter()
-    val startSquares = for (square <- perimeter) yield {
-      List(Up, Down, Left, Right)
+    var startConfigurations = List[((Int, Int), Direction)]()
+    for (square <- perimeter) {
+      startConfigurations = startConfigurations.:::(List(Up, Down, Left, Right)
         .filter(direction => !this.contains(direction.apply(square)))
-        .map(direction => (square, direction))
+        .map(direction => (square, direction)))
     }
-    if (startSquares.length == 0)
+    if (startConfigurations.length == 0)
       return List(((0, 0), Right)) // ensures the first move goes somewhere
     else
-      return startSquares.flatten
+      return startConfigurations
   }
 
   override def toString: String = {
@@ -104,11 +106,16 @@ trait Board {
     else
       (xs.max + 1, ys.max + 1, xs.min - 1, ys.min - 1)
 
-    (for (y <- minY to maxY) yield {
-      (for (x <- minX to maxX) yield this.get((x, y)) match {
-        case Some(piece) => piece.toString()
-        case None => ".."
-      }).mkString(" ")
-    }).mkString("\n")
+    val sb = new scala.collection.mutable.StringBuilder
+
+    for (y <- minY to maxY) {
+      for (x <- minX to maxX)
+        this.get((x, y)) match {
+          case Some(piece) => sb.append(piece.toString() + " ")
+          case None => sb.append(".. ")
+        }
+      sb.append("\n")
+    }
+    return sb.toString()
   }
 }
